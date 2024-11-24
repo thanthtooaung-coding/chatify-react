@@ -54,11 +54,18 @@ function App() {
                 content: input,
                 timestamp: new Date().toISOString(),
             };
-
+    
             socketRef.current.send(JSON.stringify(messageObject));
+    
+            if (!messageTimestamps.current.has(messageObject.timestamp)) {
+                setMessages((prev) => [...prev, messageObject]);
+                messageTimestamps.current.add(messageObject.timestamp);
+            }
+    
             setInput('');
         }
     };
+    
 
     return (
         <div className="App">
