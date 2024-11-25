@@ -70,7 +70,10 @@ function App() {
                     if (parsedMessage.type === 'activeUsers') {
                         setActiveUsers(parsedMessage.count);
                     } else if (!messageTimestamps.current.has(parsedMessage.timestamp)) {
-                        setMessages((prev) => [...prev, parsedMessage]);
+                        setMessages((prev) => {
+                            const updatedMessages = [...prev, parsedMessage];
+                            return updatedMessages.slice(-20);
+                        });
                         messageTimestamps.current.add(parsedMessage.timestamp);
                     }
                 };
@@ -188,14 +191,25 @@ function App() {
                 {/* Messages Area */}
                 <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
                     <div className="p-4 space-y-4">
-                        {messages.map((message, index) => (
-                            <ChatMessage
-                                key={index}
-                                message={message}
-                                isCurrentUser={message.userID === userID.current}
-                                onImageClick={(image) => setSelectedImageForModal(image)}
-                            />
-                        ))}
+                        {messages.map((message, index) => {
+                            const isSameUserAsPrevious =
+                                index > 0 &&
+                                messages[index - 1].userID === message.userID &&
+                                new Date(message.timestamp).getTime() -
+                                    new Date(messages[index - 1].timestamp).getTime() <
+                                    5 * 60 * 1000;
+
+                            return (
+                                <ChatMessage
+                                    key={index}
+                                    message={message}
+                                    isCurrentUser={message.userID === userID.current}
+                                    showAvatar={!isSameUserAsPrevious}
+                                    showTimestamp={!isSameUserAsPrevious}
+                                    onImageClick={(image) => setSelectedImageForModal(image)}
+                                />
+                            )
+                        })}
                         <div ref={messagesEndRef} />
                     </div>
                 </div>
