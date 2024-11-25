@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ServerList } from './components/ServerList';
 import { ChannelList } from './components/ChannelList';
 import { ChatMessage } from './components/ChatMessage';
-import { Hash, Send, PlusCircle, AtSign, Smile, Gift, Menu } from 'lucide-react';
+import { Hash, Send, PlusCircle, AtSign, Smile, Gift, Menu, ImageIcon, X } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 
 function App() {
@@ -19,6 +19,9 @@ function App() {
     const messageTimestamps = useRef(new Set());
     const messagesEndRef = useRef(null);
     const emojiPickerRef = useRef(null);
+    const [selectedImage, setSelectedImage] = useState(null);
+    const fileInputRef = useRef(null);
+    const [selectedImageForModal, setSelectedImageForModal] = useState(null);
 
     useEffect(() => {
         socketRef.current = new WebSocket('wss://chatify-go.onrender.com/ws');
@@ -52,8 +55,12 @@ function App() {
     }, []);
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        scrollToBottom()
     }, [messages]);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
 
     useEffect(() => {
         function handleClickOutside(event) {
@@ -74,12 +81,33 @@ function App() {
         }
     };
 
+    const handleEmojiClick = (emojiObject) => {
+        setInput((prevInput) => prevInput + emojiObject.emoji);
+        setShowEmojiPicker(false);
+    };
+
+    const handleImageUpload = (event) => {
+        const file = event.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                setSelectedImage(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const closeModal = () => {
+        setSelectedImageForModal(null);
+    };
+
     const sendMessage = () => {
-        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && input && isUsernameSet) {
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && (input || selectedImage) && isUsernameSet) {
             const messageObject = {
                 userID: userID.current,
                 username: username,
                 content: input,
+                image: selectedImage,
                 timestamp: new Date().toISOString(),
             };
 
@@ -91,12 +119,8 @@ function App() {
             }
 
             setInput('');
+            setSelectedImage(null);
         }
-    };
-
-    const handleEmojiClick = (emojiObject) => {
-        setInput((prevInput) => prevInput + emojiObject.emoji);
-        setShowEmojiPicker(false);
     };
 
     if (!isUsernameSet) {
@@ -170,6 +194,7 @@ function App() {
                                 key={index}
                                 message={message}
                                 isCurrentUser={message.userID === userID.current}
+                                onImageClick={(image) => setSelectedImageForModal(image)}
                             />
                         ))}
                         <div ref={messagesEndRef} />
@@ -179,6 +204,19 @@ function App() {
                 {/* Chat Input */}
                 <div className="p-4 bg-gray-800">
                     <div className="flex items-center bg-gray-700 rounded-lg relative">
+                    <button 
+                            className="p-3 text-gray-400 hover:text-white"
+                            onClick={() => fileInputRef.current.click()}
+                        >
+                            <ImageIcon size={20} />
+                        </button>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                        />
                         <button className="p-3 text-gray-400 hover:text-white">
                             <PlusCircle size={20} />
                         </button>
@@ -189,6 +227,17 @@ function App() {
                             placeholder="Message #general"
                             className="flex-1 bg-transparent px-2 py-2 text-white focus:outline-none min-w-0"
                         />
+                        {selectedImage && (
+                            <div className="absolute bottom-full left-0 mb-2 p-2 bg-gray-700 rounded">
+                                <img src={selectedImage} alt="Selected" className="max-w-xs max-h-32 rounded" />
+                                <button 
+                                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
+                                    onClick={() => setSelectedImage(null)}
+                                >
+                                <X size={12} />
+                                </button>
+                            </div>
+                        )}
                         <div className="flex items-center px-2">
                             <button className="p-2 text-gray-400 hover:text-white hidden sm:block">
                                 <Gift size={20} />
@@ -222,6 +271,27 @@ function App() {
                     </div>
                 </div>
             </div>
+            {selectedImageForModal && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center"
+                    onClick={closeModal}
+                >
+                    {/* The X button positioned at the top-right corner of the modal */}
+                    <button
+                        onClick={closeModal}
+                        className="absolute top-4 right-4 p-2 bg-gray-800 text-white rounded-full z-50"
+                    >
+                        <X size={24} />
+                    </button>
+                    <div className="relative max-w-full max-h-full p-6" onClick={(e) => e.stopPropagation()}>
+                        <img
+                            src={selectedImageForModal}
+                            alt="Full-screen content"
+                            className="object-contain max-w-screen max-h-screen rounded-lg"
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
