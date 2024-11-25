@@ -5,6 +5,7 @@ import { ChannelList } from './components/ChannelList';
 import { ChatMessage } from './components/ChatMessage';
 import { Hash, Send, PlusCircle, AtSign, Smile, Gift, Menu, ImageIcon, X, Users } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
+import { ChatWelcome } from './components/ChatWelcome';
 
 function App() {
     const [messages, setMessages] = useState([]);
@@ -132,24 +133,11 @@ function App() {
 
     if (!isUsernameSet) {
         return (
-            <div className="flex items-center justify-center h-screen bg-gray-900">
-                <div className="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md mx-4">
-                    <h1 className="text-2xl font-bold text-white mb-4">Welcome to Enhanced Discord-like Chat</h1>
-                    <input
-                        type="text"
-                        placeholder="Enter your username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        className="w-full p-2 mb-4 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                    <button
-                        onClick={handleSetUsername}
-                        className="w-full bg-indigo-500 text-white font-bold py-2 px-4 rounded hover:bg-indigo-600 transition duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50"
-                    >
-                        Set Username
-                    </button>
-                </div>
-            </div>
+            <ChatWelcome
+                username={username}
+                setUsername={setUsername}
+                onSubmit={handleSetUsername}
+            />
         );
     }
 
