@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ServerList } from './components/ServerList';
 import { ChannelList } from './components/ChannelList';
 import { ChatMessage } from './components/ChatMessage';
-import { Hash, Send, PlusCircle, AtSign, Smile, Gift, Menu, ImageIcon, X } from 'lucide-react';
+import { Hash, Send, PlusCircle, AtSign, Smile, Gift, Menu, ImageIcon, X, Users } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 
 function App() {
@@ -14,6 +14,7 @@ function App() {
     const [isConnected, setIsConnected] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [showSidebar, setShowSidebar] = useState(false);
+    const [activeUsers, setActiveUsers] = useState(0);
     const socketRef = useRef(null);
     const userID = useRef(uuidv4());
     const messageTimestamps = useRef(new Set());
@@ -23,30 +24,7 @@ function App() {
     const fileInputRef = useRef(null);
     const [selectedImageForModal, setSelectedImageForModal] = useState(null);
 
-    useEffect(() => {
-        socketRef.current = new WebSocket('wss://chatify-go.onrender.com/ws');
-
-        socketRef.current.onopen = () => {
-            setIsConnected(true);
-        };
-
-        socketRef.current.onmessage = (event) => {
-            const parsedMessage = JSON.parse(event.data);
-            if (!messageTimestamps.current.has(parsedMessage.timestamp)) {
-                setMessages((prev) => [...prev, parsedMessage]);
-                messageTimestamps.current.add(parsedMessage.timestamp);
-            }
-        };
-
-        socketRef.current.onclose = () => {
-            setIsConnected(false);
-            console.log("WebSocket connection closed");
-        };
-
-        socketRef.current.onerror = (error) => {
-            console.error("WebSocket error:", error);
-        };
-
+    useEffect(() => {        
         return () => {
             if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
                 socketRef.current.close();
@@ -78,6 +56,35 @@ function App() {
     const handleSetUsername = () => {
         if (username.trim() !== "") {
             setIsUsernameSet(true);
+
+            if (!socketRef.current) {
+                socketRef.current = new WebSocket('wss://chatify-go.onrender.com/ws');
+    
+                socketRef.current.onopen = () => {
+                    setIsConnected(true);
+                };
+    
+                socketRef.current.onmessage = (event) => {
+                    const parsedMessage = JSON.parse(event.data);
+                    if (parsedMessage.type === 'activeUsers') {
+                        setActiveUsers(parsedMessage.count);
+                    } else if (!messageTimestamps.current.has(parsedMessage.timestamp)) {
+                        setMessages((prev) => [...prev, parsedMessage]);
+                        messageTimestamps.current.add(parsedMessage.timestamp);
+                    }
+                };
+    
+                socketRef.current.onclose = () => {
+                    setIsConnected(false);
+                    console.log("WebSocket connection closed");
+                    socketRef.current = null;
+                };
+    
+                socketRef.current.onerror = (error) => {
+                    console.error("WebSocket error:", error);
+                };
+    
+            }
         }
     };
 
@@ -181,6 +188,10 @@ function App() {
                         <h2 className="text-white font-semibold truncate">general</h2>
                     </div>
                     <div className="flex items-center space-x-3">
+                        <div className="flex items-center text-gray-400">
+                            <Users size={20} className="mr-2" />
+                            <span>{activeUsers}</span>
+                        </div>
                         <AtSign size={20} className="text-gray-400 hover:text-white cursor-pointer hidden lg:block" />
                         <PlusCircle size={20} className="text-gray-400 hover:text-white cursor-pointer" />
                     </div>
